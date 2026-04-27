@@ -201,57 +201,6 @@ if find 0:/gm9/flags/INSTALLFLAG NULL
 	goto INSTALL_NEXT
 end
 
-# Check for title database
-
-if not find A:/dbs/title.db NULL
-	set PREVIEW_MODE "9:/finalize/img/error05.png"
-	ask "Information #05: No title database\n \nTitle database not found.\nPress (A) to automatically import one.\n(A title database is necessary\nfor this script to run.)"
-	goto IMPORT
-end
-
-if not imgmount A:/dbs/title.db
-	set PREVIEW_MODE "9:/finalize/img/error16.png"
-	if ask "Error #16: Title database mount fail\n \nTitle database exists, but could not\nbe accessed.\n \nAttempt donor import?\n(If you have anything installed on\nthis console, this may result in\ninstalled digital games being rendered\n INACCESSIBLE!)"
-	goto IMPORT
-	else
-	poweroff
-	end
-end
-
-goto MAIN
-
-@IMPORT
-
-mkdir -o -s A:/dbs
-
-if not cp -w -o -s 9:/finalize/donor.db A:/dbs/title.db
-	set PREVIEW_MODE "9:/finalize/img/error12a.png"
-	echo "Error #12a: Copy title.db fail\n \nTitle database could not be copied to A:/dbs.\nYour SD card may be faulty or illegitimate.\n \nAsk for help on Discord:\nhttps://discord.gg/MWxPgEp"
-	poweroff
-end
-
-if not cp -w -o -s 9:/finalize/donor.db A:/dbs/import.db
-	set PREVIEW_MODE "9:/finalize/img/error12b.png"
-	echo "Error #12b: Copy import.db fail\n \nTitle database could not be copied to A:/dbs.\nYour SD card may be faulty or illegitimate.\n \nAsk for help on Discord:\nhttps://discord.gg/MWxPgEp"
-	poweroff
-end
-
-if not fixcmac A:/dbs/title.db
-	set PREVIEW_MODE "9:/finalize/img/error13a.png"
-	echo "Fatal Error #13a: Fix CMAC fail\n \nCMACs could not be fixed for title database.\n(How did this happen?)\n \nAsk for help on Discord:\nhttps://discord.gg/MWxPgEp"
-	poweroff
-end
-
-if not fixcmac A:/dbs/import.db
-	set PREVIEW_MODE "9:/finalize/img/error13b.png"
-	echo "Fatal Error #13b: Fix CMAC fail\n \nCMACs could not be fixed for title database.\n(How did this happen?)\n \nAsk for help on Discord:\nhttps://discord.gg/MWxPgEp"
-	poweroff
-end
-
-
-
-@MAIN
-
 # Ask for consent here
 
 set PREVIEW_MODE "Checking for problems... DONE\n> Asking for permission...\nInstalling homebrew... ---\nCopying GodMode9 to CTRNAND... ---\nCleaning up SD card... ---\nBacking up essential.exefs... ---\nBacking up NAND... ---"
