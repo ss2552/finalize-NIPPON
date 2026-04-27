@@ -1,3 +1,4 @@
+yuumanoza-tan-guang-chang-634719150434156546
 # finalize
 
 [https://3ds.hacks.guide/finalizing-setup](https://3ds.hacks.guide/finalizing-setup) （セットアップの仕上げ）に関連するスクリプト群です。
