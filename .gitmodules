@@ -1,10 +1,11 @@
 [submodule "luma/payloads/GodMode9.firm"]
 	path = luma/payloads/GodMode9.firm
-	url = https://github.com/d0k3/GodMode9
+	url = https://github.com/d0k3/GodMode9.git
 
 [submodule "gm9/payloads/PabloMK7-Luma3DS_3GX-(v9.1).firm"]
 	path = gm9/payloads/PabloMK7-Luma3DS_3GX-(v9.1).firm
-	url = https://github.com/PabloMK7/Luma3DS_3GX
+	url = https://github.com/PabloMK7/Luma3DS_3GX.git
+	
 [submodule "cias/Universal-Updater.cia"]
 	path = cias/Universal-Updater.cia
-	url = https://github.com/Universal-Team/Universal-Updater
+	url = https://github.com/Universal-Team/Universal-Updater.git
