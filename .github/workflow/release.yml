@@ -14,23 +14,20 @@ jobs:
     - name: mk Release folder
       run: mkdir release
 
-    - name: download Universal-Updater
+    - name: move files
       run: |
-        https://github.com/Universal-Team/extras/raw/master/builds/Universal-Updater/Universal-Updater.cia
-        https://github.com/PabloMK7/Luma3DS_3GX/releases/download/v9.1/boot.firm
-        https://github.com/d0k3/GodMode9/releases/download/v2.2.3/GodMode9-v2.2.3-20260331144941.zip
+        mv cias release/ &&
+        mv gm9 release/ &&
+        mv luma release/
 
-    - name: Create Release
-      id: create_release
+    - name: Release
+      id: release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            Changes in this Release
-            - First Change
-            - Second Change
+          release_name: finalize.zip
+          body: "finalize"
           draft: false
-          prerelease: false
+          prerelease: true
