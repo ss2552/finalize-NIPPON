@@ -1,0 +1,583 @@
+# スクリプト https://3ds.hacks.guide/finalizing-setup 用
+# バージョン 1.10.4-hotfix - 最後の更新: 2026-01-04
+# GodMode9 スクリプトは危険な場合があります！
+# https://github.com/hacks-guide/finalize/releases にアクセスして、このスクリプトの整合性を確認してください。
+# クレジット: GM9Megascript の貢献者（"Plailect のガイドからのスクリプト"）、Mr. Burguers（SD カード容量チェック）、ihaveamac（title.db 関連）、J0n_b0（MSET9 チェック）、Naim2000（Nintendo 3DS フォルダチェックの改善）
+
+rm -o -s 0:/luma/payloads/finalize_helper.firm
+for 0:/luma/payloads *_finalize_helper.firm
+	rm -o -s $[FORPATH]
+next
+
+set PREVIEW_MODE "> 問題をチェック中...\n許可を求めています... ---\nホームブリューをインストール中... ---\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+
+# First order of business - Grab a hold of finalize.romfs
+if not find G:/finalize/finalize.gm9 NULL
+	if not find 0:/finalize.romfs ROMFS
+		set PREVIEW_MODE "> 問題をチェック中... :(\n許可を求めています... ---\nホームブリューをインストール中... ---\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+		echo "エラー #21: finalize.romfs が見つかりません\n \nfinalize.romfs が SD カードに見つかりませんでした。\nSD のルートにコピーして、もう一度試してください。"
+		poweroff
+	end
+
+	if not shaget $[ROMFS] ROMFS_SHA256
+		set PREVIEW_MODE "> 問題をチェック中... :(\n許可を求めています... ---\nホームブリューをインストール中... ---\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+		echo "エラー #22: finalize.romfs が読み込めません\n \nfinalize.romfs を読み込めませんでした。\n（どうしたのでしょう？破損したのでしょうか？）\n\nfinalize.romfs を SD カードにコピーして、もう一度試してください。"
+		poweroff
+	end
+
+	if not imgmount $[ROMFS]
+		set PREVIEW_MODE "> 問題をチェック中... :(\n許可を求めています... ---\nホームブリューをインストール中... ---\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+		echo "エラー #22: finalize.romfs のマウントに失敗しました\n\nfinalize.romfs をマウントできませんでした。\n（どうしたのでしょう？破損したのでしょうか？）\n\nfinalize.romfs を SD カードにコピーして、もう一度試してください。"
+		poweroff
+	end
+end
+
+# Copy finalize files to RAMDRIVE
+if not cp -w -s G:/finalize 9:/finalize
+	# えっ？？？？
+	set PREVIEW_MODE "> 問題をチェック中... :(\n許可を求めています... ---\nホームブリューをインストール中... ---\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+	echo "エラー #22: finalize.romfs が読み込めません\n \nfinalize.romfs からファイルをコピーできませんでした。\n（どうしたのでしょう？破損したのでしょうか？）\n\nfinalize.romfs を SD カードにコピーして、もう一度試してください。"
+	poweroff
+end
+
+# We're done with finalize.romfs now
+imgumount
+
+# finalize.romfs をチェックして粗い場所を削に〃
+# BuildEssentialBackup() は、これらのファイルのいずれかがない場合、失敗 (1) を返します。nand_hdr.bin を除いてか。
+
+set MISSINGESSENTIAL ""
+set SEED ""
+
+if	find -s 1:/rw/sys/SecureInfo_A NULL
+elif	find -s 1:/rw/sys/SecureInfo_B NULL
+else
+	set MISSINGESSENTIAL "$[MISSINGESSENTIAL]SecureInfo\n" # GodMode9 は \t をサポートしていますか？
+end
+
+if	find -s 1:/rw/sys/LocalFriendCodeSeed_B NULL
+elif	find -s 1:/rw/sys/LocalFriendCodeSeed_A NULL
+else
+	set MISSINGESSENTIAL "$[MISSINGESSENTIAL]LocalFriendCodeSeed\n"
+end
+
+if	find -s 1:/private/movable.sed SEED
+else
+	set MISSINGESSENTIAL "$[MISSINGESSENTIAL]movable.sed\n"
+end
+
+# Check for missing essential.exefs
+
+if not find S:/essential.exefs NULL
+	if chk -u $[MISSINGESSENTIAL] ""
+		set PREVIEW_MODE "9:/finalize/img/error30.png"
+		echo "誊告エラー #30: コンソール種沿ファイルが欠落しています\n \nNAND から以下のファイルが欠落しています\uff1a\n$[MISSINGESSENTIAL]\n \nDiscord でをげたを、種に論じてください:\nhttps://discord.gg/MWxPgEp"
+		poweroff
+	else
+		set PREVIEW_MODE "9:/finalize/img/error02.png"
+		echo "エラー #02: essential.exefs が欠落しています\n \nessential.exefs が存在しません。\nGodMode9 を閉じて、もう一度開いて、\n「会想ファイルを作成」ポップアップで「イエス」を選択\u3057てください。"
+		poweroff
+	end
+end
+
+# Check for missing Nintendo 3DS folder
+
+if not find "0:/Nintendo 3DS" NULL
+	if find 0:/gm9/flags/BACKUPFLAG NULL
+		goto BACKUPDUPE
+	end
+	goto NOSPACE
+end
+
+# この時点で Nintendo 3DS フォルダがあります。でも A: がありますか？
+
+@IS_SYSNAND_SD_OK
+
+if isdir A:
+	goto SYSNAND_SD_OK
+end
+
+# We don't. Why not?
+
+# 正常に失敗であるためです。SEED が "" の場合、ちょうど失敗べきです。誰かこれをテストしてください。
+	set PREVIEW_MODE "9:/finalize/img/error31.png"
+	echo "誊告エラー #31: 暗号化キーが欠落しています\n \nシステムの NAND から movable.sed が欠落しています\u3002\n（どうしたのでしょう？？？）\n \nDiscord でをげたを、種に論じてください:\nhttps://discord.gg/MWxPgEp"
+	# この段階で、我一人てのちに essential.exefs があります\u3002
+	# これをコピーすることができます\u3002しかし、これが失敗/̏キャンセルされた Manual Movable Moveover ではないことをどう一てしてわかりますか？ユーザーが何かをしている候辞です。
+	poweroff
+end
+
+# よし、我一人てのちに ID0 があります\u3002それがここにありますか？
+
+if not find "0:/Nintendo 3DS/$[SYSID0]" SYSID0PATH
+	if find 0:/gm9/flags/nospace NULL
+		goto NOSPACE
+	end
+
+	set PREVIEW_MODE "9:/finalize/img/error33.png"
+	echo "情報 #33: Nintendo 3DS フォルダが空です\n \nNintendo 3DS フォルダにこのコンソールのデータがありません。\nSD カードを挿入したままコンソールを電源オンして\nHOME メニューに詴汲させてから、\nこのスクリプトをもう一度実行してください。"
+	reboot
+end
+
+# MSET9 操作後の ID1 の確認と修正を試みる
+
+if find "$[SYSID0PATH]/????????????????????????????????_user-id1" CURRENT
+	set PREVIEW_MODE "9:/finalize/img/error18a.png"
+	echo "エラー #18a: MSET9 検出\n \nID1 を— MSET9 で上にあります\u3002\n修正を試みられています\u3002\n \n(A) を担んで下さい\u3001もし\nkeycombo 要求された場合、\n入力してください\u3002"
+	allow "0:/Nintendo 3DS"
+	strsplit -b REAL $[CURRENT] "_"
+	if not mv $[CURRENT] $[REAL]
+		set PREVIEW_MODE "9:/finalize/img/error19a.png"
+		echo "誊告エラー #19a: MSET9 を削除できません\n \nID1 の名前変更に失敗しました。\nMSET9 を手動で削除してください。\nこのプロンプトが表示されている場合、\nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+		poweroff
+	end
+	if find "$[SYSID0PATH]/*sdmc*b9" MSET9ID1
+		if not rm -s $[MSET9ID1]
+			set PREVIEW_MODE "9:/finalize/img/error19b.png"
+			echo "誊告エラー #19b: MSET9 を削除できません\n \nhacked ID1 の削除に失敗しました。\nMSET9 を手動で削除してください。\nこのプロンプトが表示されている場合、\nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+		poweroff
+		end
+	end
+	set FIXEDMSET9 YES
+end
+
+# hack ID1 MSET9 を確認して削除を試みる
+
+if find "$[SYSID0PATH]/*sdmc*b9" MSET9ID1
+	set PREVIEW_MODE "9:/finalize/img/error18b.png"
+	echo "エラー #18b: MSET9 検出\n \nMSET9 hax'd ID1 がまだ存在しています\u3002\n \n修正を試みています\u3002\n \n(A) を担んで下さい\u3001もし\nkeycombo 要求された場合、\n入力してください\u3002"
+	allow "0:/Nintendo 3DS"
+	if not rm -s $[MSET9ID1]
+		set PREVIEW_MODE "9:/finalize/img/error19b.png"
+	echo "誊告エラー #19b: MSET9 を削除できません\n \nhacked ID1 の削除に失敗しました。\nMSET9 を手動で削除してください。\nこのプロンプトが表示されている場合、\nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+		poweroff
+	end
+	set FIXEDMSET9 YES
+end
+
+# SD をエジェクトし、SYSNAND SD をマウントするために冋入してください
+
+if chk $[FIXEDMSET9] YES
+	set PREVIEW_MODE "9:/finalize/img/mset9_reinsert.png"
+	switchsd "MSET9 が削除されました\u3002\n \nSD カードを取り出して、もう一度指して続行してください\u3002"
+	goto IS_SYSNAND_SD_OK
+end
+
+# SYSID0 パスを住ませるこれを級不やりながら、SYSNAND SD がない。どうしたの？
+
+set PREVIEW_MODE "9:/finalize/img/error32.png"
+echo "誊告エラー #32: Nintendo 3DS フォルダにアクセスできません\n \nNintendo 3DS フォルダにアクセスできません。\n（どうしたのでしょう？？）\n \nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+poweroff
+
+@SYSNAND_SD_OK
+
+# Check for sufficient SD space
+
+if find 0:/gm9/flags/BACKUPFLAG NULL
+	goto SDFREE_NEXT
+end
+
+if chk $[SDFREE] INVALID # 起こらいでくいはず
+    set PREVIEW_MODE "9:/finalize/img/error07.png"
+    echo "誊告エラー #07: SD サイズが不明\n \nSD カードサイズを取得できません\u3002\nこれは。。。詷足りません\u3002\nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+else
+    strsplit -f -b SDFREE_VALUE $[SDFREE] " "
+    strsplit -f SDFREE_UNITS $[SDFREE] " "
+    if chk $[SDFREE_UNITS] GB
+        if chk $[ONTYPE] O3DS
+            goto SDFREE_NEXT
+        end
+        strsplit -f -b SDFREE_VALUE_1 $[SDFREE_VALUE] .
+        strsplit -f SDFREE_VALUE_2 $[SDFREE_VALUE] .
+        if chk -u $[SDFREE_VALUE_1] 1
+            goto SDFREE_NEXT
+        end
+        if chk $[SDFREE_VALUE_2] 0
+        elif chk $[SDFREE_VALUE_2] 1
+        elif chk $[SDFREE_VALUE_2] 2
+        elif chk $[SDFREE_VALUE_2] 3
+        else
+            goto SDFREE_NEXT
+        end
+    end
+    if not find 0:/gm9/flags NULL
+        mkdir -o -s 0:/gm9/flags
+    end
+    fdummy -o -s 0:/gm9/flags/nospace 400
+    if chk $[ONTYPE] O3DS
+        set PREVIEW_MODE "9:/finalize/img/error04.png"
+        echo "エラー #04: 椅堂なし\n \nSD カードの空き容量が不足しています\u3002\n1.0GB が必要ですが、現在 $[SDFREE] しかありません\u3002\nSD カードの空きを作ってから、もう一度試してください\u3002\n \nヒント：控会を一時的に Nintendo 3DSを、DCIM フォルダをあなたの SD カードから削除して、空き容量を作ることができます\u3002"
+    else
+        set PREVIEW_MODE "9:/finalize/img/error04.png"
+        echo "エラー #04: 椅堂なし\n \nSD カードの空き容量が不足しています\u3002\n1.4GB が必要ですが、現在 $[SDFREE] しかありません\u3002\nSD カードの空きを作ってから、もう一度試してください\u3002\n \nヒント：控会を一時的に Nintendo 3DSを、DCIM フォルダをあなたの SD カードから削除して、空き容量を作ることができます\u3002"
+    end
+end
+poweroff
+
+@SDFREE_NEXT
+
+# INSTALLFLAG が存在する場合、CIA インストールをスキップする許可メッセージを表示しています
+
+if find 0:/gm9/flags/INSTALLFLAG NULL
+	set PREVIEW_MODE "問題をチェック中... 完了\n> 許可を求めています...\nホームブリューをインストール中... スキップ\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+	ask "This script will do the following:\n- Copy GodMode9 to CTRNAND\n- Remove unnecessary SD files\n- Create an essential.exefs backup\n- Create a NAND backup (~1GB)\n \nThis script may take up to\nfifteen minutes to complete.\n \nIf you're okay with this,\npress (A) to continue."
+	allow 1:
+	goto INSTALL_NEXT
+end
+
+# title.db を確認してください
+
+if not find A:/dbs/title.db NULL
+	set PREVIEW_MODE "9:/finalize/img/error05.png"
+	ask "情報 #05: title.db が見つかりません\n \nTitle ダタベースが見つかりません\u3002\n(A) を担んで自動インポートしてください\u3002\n(このスクリプトを実行するには title \ndata base が必試です)"
+	goto IMPORT
+end
+
+if not imgmount A:/dbs/title.db
+	set PREVIEW_MODE "9:/finalize/img/error16.png"
+	if ask "エラー #16: Title ダタベース mount fail\n \nTitle ダタベースは存在しますが\u30a2クセスできません\u3002\n \nDonor インポートを試みますか？\n(このコンソールにインストールしたデジタルゲームが\nこれ以上\nアクセス不可能な状況を示いていう可能性があります!)"
+	goto IMPORT
+	else
+	poweroff
+	end
+end
+
+@IMPORT
+
+mkdir -o -s A:/dbs
+
+if not cp -w -o -s 9:/finalize/donor.db A:/dbs/title.db
+	set PREVIEW_MODE "9:/finalize/img/error12a.png"
+	echo "エラー #12a: Copy title.db fail\n \nTitle ダタベースを A:/dbs にコピーできません\u3002\nSD カードが壊れているか、偽物の可能性を較べています\u3002\n \nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not cp -w -o -s 9:/finalize/donor.db A:/dbs/import.db
+	set PREVIEW_MODE "9:/finalize/img/error12b.png"
+	echo "エラー #12b: Copy import.db fail\n \nTitle ダタベースを A:/dbs にコピーできません\u3002\nSD カードが壊れているか、偽物の可能性を較べています\u3002\n \nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not fixcmac A:/dbs/title.db
+	set PREVIEW_MODE "9:/finalize/img/error13a.png"
+	echo "誊告エラー #13a: Fix CMAC fail\n \nTitle database の CMAC を修正できません\u3002\n(どうしたのでしょう？）\n \nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not fixcmac A:/dbs/import.db
+	set PREVIEW_MODE "9:/finalize/img/error13b.png"
+	echo "誊告エラー #13b: Fix CMAC fail\n \nTitle database の CMAC を修正できません\u3002\n(どうしたのでしょう？）\n \nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+	poweroff
+end
+
+
+
+@MAIN
+
+# ここで許可を求めています
+
+set PREVIEW_MODE "問題をチェック中... 完了\n> 許可を求めています...\nホームブリューをインストール中... ---\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+
+ask "このスクリプトは以下を実行します\uff1a\n- ホームブリューアプリケーションをインストール\n- GodMode9 を CTRNAND にコピー\n- SD カードの不要なファイルを削除\n- essential.exefs をバックアップ\n- NAND をバックアップ (~1GB)\n \nこのスクリプトを\n完了するのに最多\n15 分かかる場合があります\u3002\n \n了承をした散促、\n(A) を担んで続行してください\u3002"
+allow 1:
+		
+set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\n> ホームブリューをインストール中...\nGodMode9 を CTRNAND にコピー中... ---\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+
+# ホームブリューアプリケーションをインストール
+# もうコピーの問題から逃げられていません...
+
+if not install 9:/finalize/Anemone3DS.cia
+	set PREVIEW_MODE "9:/finalize/img/error14a.png"
+	echo "エラー #14a: CIA インストール fail\n \nCIA (Anemone3DS) インストールに失敗しました\u3002\n \nDiscord を。。。論じてください: https://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not install 9:/finalize/Checkpoint.cia
+	set PREVIEW_MODE "9:/finalize/img/error14b.png"
+	echo "エラー #14b: CIA インストール fail\n \nCIA (Checkpoint) インストールに失敗しました\u3002\nSD カードが壊れているか、偽物の可能性を較べています\u3002\n \nDiscord を。。。論じてください: https://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not install 9:/finalize/FBI.cia
+	set PREVIEW_MODE "9:/finalize/img/error14c.png"
+	echo "エラー #14c: CIA インストール fail\n \nCIA (FBI) インストールに失敗しました\u3002\nSD カードが壊れているか、偽物の可能性を較べています\u3002\n \nDiscord を。。。論じてください: https://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not install 9:/finalize/ftpd.cia
+	set PREVIEW_MODE "9:/finalize/img/error14d.png"
+	echo "エラー #14d: CIA インストール fail\n \nCIA (ftpd) インストールに失敗しました\u3002\nSD カードが壊れているか、偽物の可能性を較べています\u3002\n \nDiscord を。。。論じてください: https://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not install 9:/finalize/Homebrew_Launcher.cia
+	set PREVIEW_MODE "9:/finalize/img/error14e.png"
+	echo "エラー #14e: CIA インストール fail\n \nCIA (Homebrew Launcher) インストールに失敗しました\u3002\nSD カードが壊れているか、偽物の可能性を較べています\u3002\n \nDiscord を。。。論じてください: https://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not install 9:/finalize/Universal-Updater.cia
+	set PREVIEW_MODE "9:/finalize/img/error14f.png"
+	echo "エラー #14f: CIA インストール fail\n \nCIA (Universal-Updater) インストールに失敗しました\u3002\nSD カードが壊れているか、偽物の可能性を較べています\u3002\n \nDiscord を。。。論じてください: https://discord.gg/MWxPgEp"
+	poweroff
+end
+
+set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... 完了\n> GodMode9 を CTRNAND にコピー中...\nSD カードをクリーンアップ中... ---\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+
+@INSTALL_NEXT
+
+if find 0:/gm9/flags/INSTALLFLAG NULL
+	set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... スキップ\n> GodMode9 を CTRNAND にコピー中...\n> SD カードをクリーンアップ中...\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+end
+
+# CTRNAND に GodMode9 をコピー
+
+cp -w -o -s 0:/luma/payloads 1:/rw/luma/payloads
+
+# CTRNAND に存在する場合、CTRNAND 上のファイナライゼドセットアップヘルパーを削除している
+
+rm -o -s 1:/rw/luma/payloads/finalize_helper.firm
+for 1:/rw/luma/payloads *_finalize_helper.firm
+	rm -o -s $[FORPATH]
+next
+
+set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... 完了\nGodMode9 を CTRNAND にコピー中... 完了\n> SD カードをクリーンアップ中...\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+
+if find 0:/gm9/flags/INSTALLFLAG NULL
+	set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... スキップ\nGodMode9 を CTRNAND にコピー中... ---\n> SD カードをクリーンアップ中...\nessential.exefs をバックアップ中... ---\nNAND をバックアップ中... ---"
+end
+
+# SD の不要なファイルを削除
+
+## A9LH から B9S へ / B9S を更新
+
+rm -o -s 0:/arm9loaderhax.bin
+rm -o -s 0:/arm9loaderhax_si.bin
+rm -o -s 0:/luma/payloads/SafeB9SInstaller.bin
+rm -o -s 0:/luma/payloads/Decrypt9WIP.bin
+rm -o -s 0:/luma/payloads/Hourglass9.bin
+rm -o -s 0:/luma/payloads/GodMode9.bin
+rm -o -s 0:/boot9strap/secret_sector.bin
+
+## 一般
+
+rm -o -s 0:/SafeB9SInstaller.bin
+rm -o -s 0:/boot9strap/boot9strap.firm
+rm -o -s 0:/boot9strap/boot9strap.firm.sha
+
+## Soundhax
+
+rm -o -s 0:/soundhax-chn-o3ds-post5.0.m4a
+rm -o -s 0:/soundhax-chn-o3ds-v3.xand4.x.m4a
+rm -o -s 0:/soundhax-eur-n3ds.m4a
+rm -o -s 0:/soundhax-eur-o3ds-post5.0.m4a
+rm -o -s 0:/soundhax-eur-o3ds-pre2.1.m4a
+rm -o -s 0:/soundhax-eur-o3ds-v2.1and2.2.m4a
+rm -o -s 0:/soundhax-eur-o3ds-v3.xand4.x.m4a
+rm -o -s 0:/soundhax-eur-o3ds-pre2.1-post5franken.m4a
+rm -o -s 0:/soundhax-eur-o3ds-v2.1and2.2-post5franken.m4a
+rm -o -s 0:/soundhax-jpn-n3ds.m4a
+rm -o -s 0:/soundhax-jpn-o3ds-post5.0.m4a
+rm -o -s 0:/soundhax-jpn-o3ds-pre2.1.m4a
+rm -o -s 0:/soundhax-jpn-o3ds-v2.1and2.2.m4a
+rm -o -s 0:/soundhax-jpn-o3ds-v3.xand4.x.m4a
+rm -o -s 0:/soundhax-jpn-o3ds-pre2.1-post5franken.m4a
+rm -o -s 0:/soundhax-jpn-o3ds-v2.1and2.2-post5franken.m4a
+rm -o -s 0:/soundhax-kor-n3ds.m4a
+rm -o -s 0:/soundhax-kor-o3ds-post5.0.m4a
+rm -o -s 0:/soundhax-kor-o3ds-v3.xand4.x.m4a
+rm -o -s 0:/soundhax-twn-o3ds-post5.0.4m4a
+rm -o -s 0:/soundhax-twn-o3ds-v3.xand4.x.m4a
+rm -o -s 0:/soundhax-usa-n3ds.m4a
+rm -o -s 0:/soundhax-usa-o3ds-post5.0.m4a
+rm -o -s 0:/soundhax-usa-o3ds-pre2.1.m4a
+rm -o -s 0:/soundhax-usa-o3ds-v2.1and2.2.m4a
+rm -o -s 0:/soundhax-usa-o3ds-v3.xand4.x.m4a
+rm -o -s 0:/soundhax-usa-o3ds-pre2.1-post5franken.m4a
+rm -o -s 0:/soundhax-usa-o3ds-v2.1and2.2-post5franken.m4a
+rm -o -s 0:/soundhax.m4a
+rm -o -s 0:/otherapp.bin
+
+## BannerBomb3
+
+rm -o -s 0:/bb3.bin
+rm -o -s "A:/Nintendo DSiWare/F00D43D5.bin"
+
+## unSAFE_MODE
+
+rm -o -s 0:/usm.bin
+rm -o -s 0:/3ds/slotTool/
+rm -o -s 0:/3ds/slotTool.3dsx
+
+## Fredtool / Frogtool
+
+rm -o -s 0:/484E4441.bin
+rm -o -s 0:/484E4441.bin.patched
+rm -o -s 0:/frogcert.bin
+rm -o -s 0:/private/ds/app/4B47554A/001/T00031_1038C2A757B77_000.ppm
+rm -o -s 0:/movable.sed
+rm -o -s 0:/3ds/Frogtool.3dsx
+rm -o -s 0:/boot.nds
+
+## ブラウザー
+
+rm -o -s 0:/browserhax_hblauncher_ropbin_payload.bin
+rm -o -s 0:/arm11code.bin
+
+## menuhax67 / nimdsphax-一般 (これが粗い理由で、作られることを試みています)
+
+rm -o -s 0:/Launcher.dat # 申し訳していい、gateway users
+
+rm -o -s 0:/3ds/menuhax67_installer.3dsx
+rm -o -s 0:/3ds/nimdsphax/
+
+## 異なるエクスプロイト
+
+rm -o -s 0:/freaky.bin
+rm -o -s 0:/steelhax/
+rm -o -s 0:/petitcom_us.icn
+rm -o -s 0:/petitcom_jpn.icn # technically redundant
+rm -o -s 0:/petitcom_eu.icn
+
+## MSET9
+
+rm -o -s 0:/mset9.bat
+rm -o -s 0:/MSET9-Windows.bat
+rm -o -s 0:/mset9.command
+rm -o -s 0:/MSET9-macOS.command
+rm -o -s 0:/mset9.py
+rm -o -s 0:/b9
+rm -o -s 0:/SafeB9S.bin
+rm -o -s 0:/_INSTRUCTIONS.txt
+rm -o -s 0:/errors.txt
+
+set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... 完了\nGodMode9 を CTRNAND にコピー中... 完了\nSD カードをクリーンアップ中... 完了\n> essential.exefs をバックアップ中...\nNAND をバックアップ中... ---"
+
+if find 0:/gm9/flags/INSTALLFLAG NULL
+	set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... スキップ\nGodMode9 を CTRNAND にコピー中... 完了\nSD カードをクリーンアップ中... 完了\n> essential.exefs をバックアップ中...\n> NAND をバックアップ中... ---"
+end
+
+# essential.exefs をバックアップ
+
+if not find 0:/gm9/backups NULL
+	mkdir 0:/gm9/backups
+end
+findnot 0:/gm9/backups/$[SERIAL]_essential_??.exefs OUTPATH
+cp -w S:/essential.exefs $[OUTPATH]
+
+set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... 完了\nGodMode9 を CTRNAND にコピー中... 完了\nSD カードをクリーンアップ中... 完了\nessential.exefs をバックアップ中... 完了\n> NAND をバックアップ中..."
+
+if find 0:/gm9/flags/INSTALLFLAG NULL
+	set PREVIEW_MODE "問題をチェック中... 完了\n許可を求めています... 完了\nホームブリューをインストール中... スキップ\nGodMode9 を CTRNAND にコピー中... 完了\nSD カードをクリーンアップ中... 完了\nessential.exefs をバックアップ中... 完了\n> NAND をバックアップ中... ---"
+end
+
+# NAND バックアップ
+
+if find 0:/gm9/flags/BACKUPFLAG NULL
+	goto BACKUPSKIP
+end
+
+findnot 0:/gm9/backups/$[DATESTAMP]_$[SERIAL]_sysnand_??.bin OUTPATH
+
+if	cp -h S:/nand_minsize.bin $[OUTPATH]
+else
+	set PREVIEW_MODE "9:/finalize/img/error06.png"
+ 	echo "エラー #06: NAND バックアップ fail\n \nNAND バックアップが何らかの理由で失敗しました\u3002\n(キャンセルしましたか？）\nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+	poweroff
+end
+goto CLEANUP
+
+@NOSPACE # SD が椅堂のために子後退佋をてくぶり
+
+set PREVIEW_MODE "問題をチェック中... 3DS フォルダがない\n> NAND をバックアップ中..."
+if not find 0:/gm9/backups NULL
+	mkdir 0:/gm9/backups
+end
+findnot 0:/gm9/backups/$[DATESTAMP]_$[SERIAL]_sysnand_??.bin OUTPATH
+
+if	cp -h S:/nand_minsize.bin $[OUTPATH]
+else
+	set PREVIEW_MODE "9:/finalize/img/error06_nospace.png"
+ 	echo "エラー #06: NAND バックアップ fail\n \nNAND バックアップが何らかの理由で失敗しました\u3002\n(空き容量を消費しましたか？）\nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+	poweroff
+end
+
+if not find 0:/gm9/flags NULL
+	mkdir 0:/gm9/flags
+end
+if find 0:/gm9/flags/BACKUPFLAG NULL
+	rm -o -s 0:/gm9/flags/BACKUPFLAG
+end
+	
+set BACKUPFLAG 0:/gm9/flags/BACKUPFLAG
+if not fdummy $[BACKUPFLAG] 400
+	set PREVIEW_MODE "9:/finalize/img/error15.png"
+ 	echo "誊告エラー #15: ファイル作成 fail\n \n0:/gm9/flags/BACKUPFLAG を作成できません\u3002\n(どうしたのでしょう？）\n \nDiscord を。。。論じてください\uff1a\nhttps://discord.gg/MWxPgEp"
+	poweroff
+end
+
+set PREVIEW_MODE "9:/finalize/img/emptysd_complete.png"
+echo "NAND バックアップが完了しました\u3002\nSD:/gm9/backups の 2 つ の SysNAND ファイルを、\nコンピュータの安全な場所にコピーしてから、\nSD カードから削除してください\u3002\nその一一、Nintendo 3DS フォルダを\nSD カードに抱いて、このスクリプトを\nもう一度実行してください\u3002\n \nNintendo 3DS フォルダバックアップがない場合、\nHOME メニューを開いてから、このスクリプトをもう一度実行してください\u3002"
+poweroff
+
+@CLEANUP # Self-removes script and remove script flags
+
+if find 0:/gm9/flags/INSTALLFLAG NULL
+	set PREVIEW_MODE "Checking for problems... DONE\nAsking for permission... DONE\nInstalling homebrew... SKIP\nCopying GodMode9 to CTRNAND... DONE\nCleaning up SD card... DONE\nBacking up essential.exefs... DONE\nBacking up NAND... DONE"
+	goto INSTALLSKIP
+end
+
+cp -w 9:/finalize/gm9/scripts/GM9Megascript.gm9 0:/gm9/scripts/GM9Megascript.gm9
+cp -w -o -s G:/finalize/gm9/languages 0:/gm9/languages
+rm -o -s 0:/gm9/scripts/finalize.gm9
+rm -o -s 0:/finalize.romfs
+
+set PREVIEW_MODE "9:/finalize/img/complete.png"
+
+echo "Success: Setup complete! :D\n \nRemember to backup the contents of\nSD:/gm9/backups to somewhere safe."
+# rm -o -s 0:/finalize
+rm -o -s 0:/gm9/flags
+
+poweroff
+
+@BACKUPSKIP
+
+cp -w 9:/finalize/gm9/scripts/GM9Megascript.gm9 0:/gm9/scripts/GM9Megascript.gm9
+cp -w -o -s G:/finalize/gm9/languages 0:/gm9/languages
+rm -o -s 0:/gm9/scripts/finalize.gm9
+rm -o -s 0:/finalize.romfs
+
+set PREVIEW_MODE "9:/finalize/img/complete_backupflag.png"
+
+if find 0:/gm9/flags/INSTALLFLAG NULL
+	echo "成功：セットアップが完了しました！ :D\n \nSD:/gm9/backups の内容を\n安全な場所にバックアップしてをこう\u3002\n \n警告：NAND バックアップが自動スキップされました！\n別のバックアップを作成したい場合、\n以下の椿告に従ってください\uff1a\nhttps://tinyurl.com/gm9nandbackup\n警告：User 要求により CIA インストールをスキップしました！"
+else
+	echo "成功：セットアップが完了しました！ :D\n \nSD:/gm9/backups の内容を\n安全な場所にバックアップしてをこう\u3002\n \n警告：NAND バックアップが自動スキップされました！\n別のバックアップを作成したい場合、\n以下の椿告に従ってください\uff1a\nhttps://tinyurl.com/gm9nandbackup"
+end
+
+# rm -o -s 0:/finalize
+rm -o -s 0:/gm9/flags
+poweroff
+
+@BACKUPDUPE
+
+set PREVIEW_MODE "9:/finalize/img/error17.png"
+
+ask "情報 #17: 重複 NAND バックアップ\n既に NAND バックアップを作成したをのようです\u3002\n \nホームブリューアプリケーションをインストールしたい場合、\nSD:/gm9/backups から NAND バックアップを\nコンピュータの安全な場所にコピーし、\nSD カードから削除し、\nNintendo 3DS フォルダを SD カードに\n抱いて。\n(フォルダを失った場合、\nSD を挿入したまま HOME メニューを\n開いて、フォルダを惋状を、リジェネレートをできます。）\n \n(A) を担んで、それでも NAND バックアップを作成してきて、\n(B) を担んで中止して\u3002"
+goto NOSPACE
+
+@INSTALLSKIP
+
+cp -w 9:/finalize/gm9/scripts/GM9Megascript.gm9 0:/gm9/scripts/GM9Megascript.gm9
+cp -w -o -s G:/finalize/gm9/languages 0:/gm9/languages
+rm -o -s 0:/gm9/scripts/finalize.gm9
+rm -o -s 0:/finalize.romfs
+
+set PREVIEW_MODE "9:/finalize/img/complete_installflag.png"
+
+echo "成功：セットアップが完了しました！ :D\n \nSD:/gm9/backups の内容を\n安全な場所にバックアップしてをこう\u3002\n \n警告：User 要求により CIA インストールをスキップしました！"
+# rm -o -s 0:/finalize
+rm -o -s 0:/gm9/flags
+
+poweroff
+
